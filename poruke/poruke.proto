@@ -1,0 +1,11 @@
+syntax = "proto3";
+package proto;
+option go_package="./";
+
+message Ping{
+    int32 id = 1;
+}
+
+message Pong{
+    int32 id = 1;
+}

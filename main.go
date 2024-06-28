@@ -3,22 +3,27 @@ package main
 import (
 	op "at24/operativac"
 	"fmt"
+	"time"
 )
 
 func main() {
-	fmt.Println("Hello world !")
+	start := time.Now()
+	//fmt.Println("Hello world !")
 
 	sl1 := op.NovaSluzba("domacaSluzba")
 
-	op1 := &op.Operativac{}
-	op2 := &op.Operativac{}
-
-	id1 := sl1.DodajOperativca(op1)
-	id2 := sl1.DodajOperativca(op2)
+	id1 := sl1.DodajOperativca()
+	id2 := sl1.DodajOperativca()
 
 	sl1.PosaljiPoruku(id1, "Dobrodosao u sluzbu operativcu 0\n")
 	sl1.PosaljiPoruku(id2, "Dobrodosao u sluzbu operativcu 1\n")
 	sl1.PosaljiPoruku(id2, 2)
 
 	sl1.ObustaviSluzbu()
+	duration := time.Since(start)
+	fmt.Println("DUZINA IZVRSAVANJA : ", duration)
+	fmt.Println("\nSada su svi operativci zavrsili sve obaveze\n")
+
+	sl1.UgasiSluzbu()
+
 }
