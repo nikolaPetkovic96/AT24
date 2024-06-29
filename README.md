@@ -8,3 +8,9 @@ predmeti projeakat iz predmeta agentske tehnologije
 
 ## Članovi tima
   - Nikola Petkovic RA 232/2015
+
+
+
+#Pokretanje
+  - "go run main.go" - testira kreiranje sistema, aktora i gracefull shutdown
+  - "go run udpServer.go 9090" - testira pokretanje udp servera koji ceka poruke na portu 9090 i prosledjuje ih aktorskom sistemu

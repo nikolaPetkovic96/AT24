@@ -47,6 +47,7 @@ func (sl *Sluzba) ProveriOperativca(id int) {
 }
 
 func (sl *Sluzba) PosaljiPoruku(id int, msg Message) {
+	t := time.Now()
 	sl.mu.Lock()
 	op, exists := sl.operativci[id]
 	sl.mu.Unlock()
@@ -54,31 +55,31 @@ func (sl *Sluzba) PosaljiPoruku(id int, msg Message) {
 		uspeh := op.Obradi(msg)
 		switch uspeh {
 		case true:
-			fmt.Printf("Poruka uspesno poslata operativcu : %d\n", id)
+			fmt.Printf("%s : Poruka uspesno poslata operativcu : %d\n", t, id)
 		default:
-			fmt.Printf("Poruka nije isporucena operativcu : %d\n", id)
+			fmt.Printf("%s : Poruka nije isporucena operativcu : %d\n", t, id)
 		}
 	} else {
-		fmt.Printf("U Sluzbi %s ne postoji operativac sa Id : %d\n", sl.naziv, id)
+		fmt.Printf("%s : U Sluzbi %s ne postoji operativac sa Id : %d\n", t, sl.naziv, id)
 	}
 }
 
-func (sl *Sluzba) ObustaviSluzbu() {
+func (sl *Sluzba) ObustaviSluzbu(t time.Time) {
 	sl.mu.Lock()
 	for _, op := range sl.operativci {
 		go func() { op.Stop(sl) }()
-		fmt.Printf("Poslata poruka za obustavljanje, %d\n", op.pid)
+		fmt.Printf("%s : Poslata poruka za obustavljanje, %d\n", t, op.pid)
 	}
 	sl.mu.Unlock()
 	time.Sleep(500 * time.Millisecond)
 	sl.PosaljiPoruku(1, "NE BI TREBALO DA SE PRIKAZE U KONZOLI!")
 	sl.wg.Wait()
 
-	fmt.Printf("Sluzba < %s > je obustavljena\n", sl.naziv)
+	fmt.Printf("%s : Sluzba < %s > je obustavljena\n", t, sl.naziv)
 }
 
 // gasi sluzbu koja je prethodno otkazana
-func (sl *Sluzba) UgasiSluzbu() {
+func (sl *Sluzba) UgasiSluzbu(t time.Time) {
 
 	for _, op := range sl.operativci {
 		sl.wg.Add(1)
@@ -86,7 +87,7 @@ func (sl *Sluzba) UgasiSluzbu() {
 			defer sl.wg.Done()
 			sl.UkloniOperativca(op.pid)
 		}()
-		fmt.Printf("Poslata poruka za obustavljanje, %d\n", op.pid)
+		fmt.Printf("%s : Poslata poruka za obustavljanje, %d\n", t, op.pid)
 	}
 	sl.wg.Wait()
 	fmt.Printf("Sluzba < %s> je uspesno UGASENA\n", sl.naziv)

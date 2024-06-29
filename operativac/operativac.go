@@ -36,8 +36,10 @@ func NoviOperativac(id int, sl *Sluzba) *Operativac {
 // func(tip) nazivFunc(param[]) retTip
 func (o *Operativac) Receive(msg Message) {
 	switch m := msg.(type) {
+
 	case string:
 		fmt.Printf("Opertaivac sa id = %d je primio poruku : %s\n", o.pid, m)
+
 	default:
 		fmt.Printf("Opertaivac sa id = %d ne prepoznaje tip poruke\n", o.pid)
 	}
@@ -51,6 +53,9 @@ func (o *Operativac) Start() {
 		for {
 			select {
 			case dopis := <-o.sanduce:
+				if o.pid == 0 {
+					time.Sleep(1 * time.Second)
+				}
 				o.Receive(dopis)
 			case <-o.obustava:
 				o.obustavljen = true

@@ -1,11 +1,28 @@
 syntax = "proto3";
-package proto;
-option go_package="./";
+package poruke;
+option go_package="AT24/poruke";
 
-message Ping{
-    int32 id = 1;
+message Ping {
+    
+    int32 id = 4;
 }
 
 message Pong{
     int32 id = 1;
+}
+
+message Welcome{
+    int32 id = 1;
+}
+
+message Adrese{
+    AktorId primalac=1;
+    AktorId posiljalac=2;
+
+}
+
+message AktorId{
+    string adresa=1;
+    int32 port=2;
+    int32 id=3;
 }
