@@ -1,7 +1,9 @@
 package operativac
 
 import (
+	poruke "at24/poruke"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -16,7 +18,7 @@ type Actor interface {
 
 type Operativac struct {
 	pid         int
-	sanduce     chan Message
+	sanduce     chan poruke.Poruka
 	obustava    chan Message
 	wg          sync.WaitGroup
 	sluzba      *Sluzba
@@ -26,7 +28,7 @@ type Operativac struct {
 func NoviOperativac(id int, sl *Sluzba) *Operativac {
 	return &Operativac{
 		pid:         id,
-		sanduce:     make(chan Message, 10),
+		sanduce:     make(chan poruke.Poruka, 10),
 		obustava:    make(chan Message, 1),
 		sluzba:      sl,
 		obustavljen: false,
@@ -34,14 +36,33 @@ func NoviOperativac(id int, sl *Sluzba) *Operativac {
 }
 
 // func(tip) nazivFunc(param[]) retTip
-func (o *Operativac) Receive(msg Message) {
-	switch m := msg.(type) {
+func (o *Operativac) Receive(msg poruke.Poruka) {
+	lok := o.sluzba.conn.LocalAddr().String()
+	switch m := msg.Msg.(type) {
+	//case string:
+	//	fmt.Printf("Opertaivac sa id = %d je primio poruku : %s\n", o.pid, m)
+	//case *poruke.Poruka:
+	//	fmt.Println("PRIMLJEN PING \n")
 
-	case string:
-		fmt.Printf("Opertaivac sa id = %d je primio poruku : %s\n", o.pid, m)
+	//_, err := conn.writeToUDP(&poruke.Pong{Id: "null"})
+	//if err != nil {
+	//fmt.Printf("Error sending PONG to  %s\n", )
+	//}
+	//case *poruke.Poruka:
+	//	fmt.Println("PRIMLJEN PING :%s\n", m.Posiljalac)
+	case *poruke.Poruka_Ping:
+		fmt.Printf("PRIMLJEN PING OD:%s\n", msg.Posiljalac)
+		o.sluzba.PosaljiDrugojSluzbi2(msg.Posiljalac, &poruke.Poruka{Posiljalac: lok, Msg: &poruke.Poruka_Pong{Pong: &poruke.Pong{Id: "TEST_PONG"}}})
+	case *poruke.Poruka_Pong:
+		fmt.Printf("PRIMLJEN PONG OD:%s\n", msg.Posiljalac)
+		o.sluzba.PosaljiDrugojSluzbi2(msg.Posiljalac, &poruke.Poruka{Posiljalac: lok, Msg: &poruke.Poruka_Ping{Ping: &poruke.Ping{Id: "TEST_PING"}}})
 
 	default:
 		fmt.Printf("Opertaivac sa id = %d ne prepoznaje tip poruke\n", o.pid)
+		fmt.Printf("NEPREPOZNATA PORUKA : %s\n", m)
+
+		fmt.Printf("TIP:%s\n", reflect.TypeOf(msg))
+		//o.sluzba.PosaljiDrugojSluzbi("192.168.1.102:9091")
 	}
 
 }
@@ -79,7 +100,7 @@ func (o *Operativac) Stop(sl *Sluzba) {
 	close(o.obustava)
 }
 
-func (o *Operativac) Obradi(msg Message) bool {
+func (o *Operativac) Obradi(msg poruke.Poruka) bool {
 	if o.obustavljen || o.sanducePuno() {
 		return false
 	} else {

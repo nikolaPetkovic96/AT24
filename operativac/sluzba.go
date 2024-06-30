@@ -1,24 +1,43 @@
 package operativac
 
 import (
+	"at24/poruke"
 	"fmt"
+	"math/rand"
+	"net"
 	"sync"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type Sluzba struct {
-	naziv      string
-	operativci map[int]*Operativac
-	naredniId  int
-	mu         sync.Mutex
-	wg         sync.WaitGroup
+	naziv         string
+	operativci    map[int]*Operativac
+	naredniId     int
+	mu            sync.Mutex
+	wg            sync.WaitGroup
+	conn          *net.UDPConn
+	poznateSluzbe map[string]*net.UDPAddr
 }
 
-func NovaSluzba(ime string) *Sluzba {
+func NovaSluzba(ime string, conn *net.UDPConn, poznate []string) *Sluzba {
+	pSluzbe := make(map[string]*net.UDPAddr)
+	for _, s := range poznate {
+		addr, err := net.ResolveUDPAddr("udp", s)
+		if err != nil {
+			fmt.Printf("NEISPRAVAN FORMAT ADRESE : %s \n", s)
+			continue
+		}
+		pSluzbe[s] = addr
+	}
+	fmt.Printf("UKUPNO POZNATIH SLUZBI : %d\n", len(pSluzbe))
 	return &Sluzba{
-		naziv:      ime,
-		operativci: make(map[int]*Operativac),
-		naredniId:  0,
+		naziv:         ime,
+		operativci:    make(map[int]*Operativac),
+		naredniId:     0,
+		conn:          conn,
+		poznateSluzbe: pSluzbe,
 	}
 }
 
@@ -35,7 +54,7 @@ func (sl *Sluzba) DodajOperativca() int {
 	return id
 }
 
-func (sl *Sluzba) ProveriOperativca(id int) {
+/*func (sl *Sluzba) ProveriOperativca(id int) {
 	sl.mu.Lock()
 	op, exists := sl.operativci[id]
 	sl.mu.Unlock()
@@ -44,9 +63,9 @@ func (sl *Sluzba) ProveriOperativca(id int) {
 	} else {
 		fmt.Printf("U Sluzbi %s ne postoji operativac sa Id : %d .", sl.naziv, id)
 	}
-}
+}*/
 
-func (sl *Sluzba) PosaljiPoruku(id int, msg Message) {
+func (sl *Sluzba) PosaljiPoruku(id int, msg poruke.Poruka) {
 	t := time.Now()
 	sl.mu.Lock()
 	op, exists := sl.operativci[id]
@@ -63,6 +82,33 @@ func (sl *Sluzba) PosaljiPoruku(id int, msg Message) {
 		fmt.Printf("%s : U Sluzbi %s ne postoji operativac sa Id : %d\n", t, sl.naziv, id)
 	}
 }
+func (sl *Sluzba) PosaljiPorukuRand(msg poruke.Poruka) bool {
+	switch msg.Msg.(type) {
+	case *poruke.Poruka_Stop:
+		fmt.Printf("STIGLA NAREDBA ZA GASENJE SLUZBE !")
+		sl.ObustaviSluzbu(time.Now())
+		return false
+	default:
+		t := time.Now()
+		sl.mu.Lock()
+		id := rand.Intn(len(sl.operativci))
+		op, exists := sl.operativci[id]
+		sl.mu.Unlock()
+		if exists {
+			uspeh := op.Obradi(msg)
+			switch uspeh {
+			case true:
+				fmt.Printf("%s : Poruka uspesno poslata operativcu : %d\n", t, id)
+			default:
+				fmt.Printf("%s : Poruka nije isporucena operativcu : %d\n", t, id)
+			}
+		} else {
+			fmt.Printf("%s : U Sluzbi %s ne postoji operativac sa Id : %d\n", t, sl.naziv, id)
+		}
+		return true
+	}
+
+}
 
 func (sl *Sluzba) ObustaviSluzbu(t time.Time) {
 	sl.mu.Lock()
@@ -72,7 +118,7 @@ func (sl *Sluzba) ObustaviSluzbu(t time.Time) {
 	}
 	sl.mu.Unlock()
 	time.Sleep(500 * time.Millisecond)
-	sl.PosaljiPoruku(1, "NE BI TREBALO DA SE PRIKAZE U KONZOLI!")
+	//sl.PosaljiPoruku(1, "NE BI TREBALO DA SE PRIKAZE U KONZOLI!")
 	sl.wg.Wait()
 
 	fmt.Printf("%s : Sluzba < %s > je obustavljena\n", t, sl.naziv)
@@ -87,7 +133,7 @@ func (sl *Sluzba) UgasiSluzbu(t time.Time) {
 			defer sl.wg.Done()
 			sl.UkloniOperativca(op.pid)
 		}()
-		fmt.Printf("%s : Poslata poruka za obustavljanje, %d\n", t, op.pid)
+		fmt.Printf("%s : Poslata poruka za uklanjanje, %d\n", t, op.pid)
 	}
 	sl.wg.Wait()
 	fmt.Printf("Sluzba < %s> je uspesno UGASENA\n", sl.naziv)
@@ -102,4 +148,24 @@ func (sl *Sluzba) UkloniOperativca(i int) {
 		fmt.Printf("Uspesno uklonjen operativac sa id : %d\n", i)
 	}
 	sl.mu.Unlock()
+}
+
+func (sl *Sluzba) PosaljiDrugojSluzbi(adr string, s string) {
+	sl.conn.WriteToUDP([]byte(s), sl.poznateSluzbe[adr])
+}
+func (sl *Sluzba) PosaljiDrugojSluzbi2(adr string, p *poruke.Poruka) {
+	marsh, err := proto.Marshal(p)
+	if err != nil {
+		fmt.Println("Error marshaling protobuf:", err)
+		return
+	}
+	sl.conn.WriteToUDP(marsh, sl.poznateSluzbe[adr])
+}
+
+func (sl *Sluzba) PingAll() {
+	for k := range sl.poznateSluzbe {
+		lok := sl.conn.LocalAddr().String()
+
+		sl.PosaljiDrugojSluzbi2(k, &poruke.Poruka{Posiljalac: lok, Msg: &poruke.Poruka_Ping{Ping: &poruke.Ping{Id: "TESTIRANJE"}}})
+	}
 }

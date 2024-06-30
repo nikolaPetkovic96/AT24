@@ -2,16 +2,25 @@ package main
 
 import (
 	op "at24/operativac"
+	"at24/poruke"
 	"fmt"
 	"net"
 	"os"
 	"strings"
+	"time"
+
+	"google.golang.org/protobuf/proto"
 )
 
 var address string
 
 func main() {
 	port := os.Args[1]
+	poznateSluzbe := strings.Split(os.Args[2], ",")
+	for _, s := range poznateSluzbe {
+		fmt.Printf("PoznataSluzba : %s\n", s)
+	}
+
 	connIP, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		fmt.Printf("err")
@@ -35,15 +44,20 @@ func main() {
 		fmt.Printf("Error listening: %v\n", err)
 		return
 	}
-	fmt.Println("Adresa udp servera : ", address.String())
+	fmt.Println("Adresa udp servera : ", novaA)
 	defer conn.Close()
 
-	sl1 := op.NovaSluzba("domacaSluzba")
+	sl1 := op.NovaSluzba("domacaSluzba", conn, poznateSluzbe)
 
-	id1 := sl1.DodajOperativca()
-	id2 := sl1.DodajOperativca()
-	sl1.PosaljiPoruku(id1, "Dobrodosao u sluzbu operativcu 0\n")
-	sl1.PosaljiPoruku(id2, "Dobrodosao u sluzbu operativcu 1\n")
+	sl1.DodajOperativca()
+	sl1.DodajOperativca()
+	sl1.DodajOperativca()
+	sl1.DodajOperativca()
+	sl1.DodajOperativca()
+
+	//sl1.PosaljiPoruku(id1, "Dobrodosao u sluzbu operativcu 0\n")
+	//sl1.PosaljiPoruku(id2, "Dobrodosao u sluzbu operativcu 1\n")
+	sl1.PingAll()
 	for {
 		buffer := make([]byte, 1024)
 		n, clientAddr, err := conn.ReadFromUDP(buffer)
@@ -52,8 +66,20 @@ func main() {
 			continue
 		}
 		msg := buffer[:n]
+		var poruka poruke.Poruka
+		err = proto.Unmarshal(msg, &poruka)
+		if err != nil {
+			fmt.Println("Error unmarshaling protobuf:", err)
+			continue
+		}
 
-		fmt.Printf("Received message from %s: %s\n", clientAddr, string(msg))
-		sl1.PosaljiPoruku(len(msg)%2, msg)
+		fmt.Printf("Received message from %s: %s\n", clientAddr, poruka.String())
+		nastavi := sl1.PosaljiPorukuRand(poruka)
+		if !nastavi {
+			break
+		} else {
+			continue
+		}
 	}
+	sl1.UgasiSluzbu(time.Now())
 }

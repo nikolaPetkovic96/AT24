@@ -3,12 +3,11 @@ package poruke;
 option go_package="AT24/poruke";
 
 message Ping {
-    
-    int32 id = 4;
+    string id = 1;
 }
 
 message Pong{
-    int32 id = 1;
+    string id = 1;
 }
 
 message Welcome{
@@ -25,4 +24,20 @@ message AktorId{
     string adresa=1;
     int32 port=2;
     int32 id=3;
+}
+
+message Poruka{
+    string posiljalac=1;
+    oneof msg{
+        Ping ping =2;
+        Pong pong=3;
+        Stop stop=4;
+        Start start=5;
+    }
+}
+
+message Stop{
+}
+
+message Start{
 }

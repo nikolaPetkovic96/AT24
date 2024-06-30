@@ -11,6 +11,25 @@ predmeti projeakat iz predmeta agentske tehnologije
 
 
 
-#Pokretanje
-  - "go run main.go" - testira kreiranje sistema, aktora i gracefull shutdown
-  - "go run udpServer.go 9090" - testira pokretanje udp servera koji ceka poruke na portu 9090 i prosledjuje ih aktorskom sistemu
+# POKRETANJE
+##  PING-PONG test
+>1.1 Pokrenuti prvu instancu servera, parametri port i adresa drugog servera(za prvu instancu moze bilo sta)
+>```sh
+>  go run udpServer.go 9090 ne_poznajem_druge_servere
+>```
+>1.2 Konzola prve instance ce ispisati adresa i port na kome je server pokrenut
+>1.3 Pokrenuti drugu instancu servera, port, adresa iz takce 1.2
+>```sh
+> go run udpServer.go 9091 192.168.1.101:9090
+>```
+>1.4 Serveri 1 i 2 pocinju beskonacno slati PING i PONG jedan drugom\
+>1.5. Poslati direktivu nekom serveru da otpocne svoje zaustavljanje
+>```sh
+>go run direktive.go stop 192.168.1.101:9091
+>```
+>1.6 Server kojem je poslata direktiva stop ce prestati osluskivati dalje poruke, svim operativicima ce biti poslata direktiva da obrade preostale poruke u sanducetu i prestanu sa primanjem novih poruka.\
+>1.7 Svaki operativac pri zaustavljanju blokira svoju rutinu na 10s tako da na konzoli nece biti ispisa 10ak sekundi, isPenzionisan() vraca true(novo stanje).\
+>1.8 Kada svi operativci zavrse svoje zaustavljanje server ce ukloniti sve agente koji su penzionisani.\
+>1.9 Sluzba koja je primila direktivu stop iz 1.5 uspesno zavrsava svoje poslovanje i main() metoda zavrsava svoje izvrsavanje.
+
+
