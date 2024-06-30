@@ -28,11 +28,13 @@ message AktorId{
 
 message Poruka{
     string posiljalac=1;
+    int32 cntFail=2;
     oneof msg{
-        Ping ping =2;
-        Pong pong=3;
-        Stop stop=4;
-        Start start=5;
+        Ping ping =3;
+        Pong pong=4;
+        Stop stop=5;
+        Start start=6;
+        Fail fail=7;
     }
 }
 
@@ -40,4 +42,7 @@ message Stop{
 }
 
 message Start{
+}
+message Fail{
+    bool fail=1;
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"at24/poruke"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 
@@ -32,7 +33,13 @@ func main() {
 	//prepoznavanje direktive
 	switch direktiva {
 	case "stop":
-		PosaljiDrugojSluzbi2(sluzba, &poruke.Poruka{Posiljalac: "STOP", Msg: &poruke.Poruka_Stop{Stop: &poruke.Stop{}}}, conn)
+		PosaljiDrugojSluzbi2(sluzba, &poruke.Poruka{Posiljalac: "STOP", CntFail: 0, Msg: &poruke.Poruka_Stop{Stop: &poruke.Stop{}}}, conn)
+	case "force_fail":
+		for i := 1; i <= 5; i++ {
+			failure := randomBool()
+			PosaljiDrugojSluzbi2(sluzba, &poruke.Poruka{Posiljalac: "FAIL", CntFail: 0, Msg: &poruke.Poruka_Fail{Fail: &poruke.Fail{Fail: failure}}}, conn)
+		}
+
 	default:
 		fmt.Println("Direktiva nije prepoznata!")
 
@@ -52,4 +59,9 @@ func PosaljiDrugojSluzbi2(adr string, p *poruke.Poruka, conn *net.UDPConn) {
 		return
 	}
 	conn.WriteToUDP(marsh, addr)
+}
+
+func randomBool() bool {
+	randomNumber := rand.Intn(2)
+	return randomNumber == 1
 }

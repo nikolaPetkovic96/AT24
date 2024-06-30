@@ -3,6 +3,7 @@ package operativac
 import (
 	poruke "at24/poruke"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"sync"
 	"time"
@@ -23,6 +24,8 @@ type Operativac struct {
 	wg          sync.WaitGroup
 	sluzba      *Sluzba
 	obustavljen bool
+	cntReceive  int
+	cntFailure  int
 }
 
 func NoviOperativac(id int, sl *Sluzba) *Operativac {
@@ -32,12 +35,15 @@ func NoviOperativac(id int, sl *Sluzba) *Operativac {
 		obustava:    make(chan Message, 1),
 		sluzba:      sl,
 		obustavljen: false,
+		cntReceive:  0,
+		cntFailure:  0,
 	}
 }
 
 // func(tip) nazivFunc(param[]) retTip
 func (o *Operativac) Receive(msg poruke.Poruka) {
 	lok := o.sluzba.conn.LocalAddr().String()
+	o.cntReceive += 1
 	switch m := msg.Msg.(type) {
 	//case string:
 	//	fmt.Printf("Opertaivac sa id = %d je primio poruku : %s\n", o.pid, m)
@@ -56,12 +62,24 @@ func (o *Operativac) Receive(msg poruke.Poruka) {
 	case *poruke.Poruka_Pong:
 		fmt.Printf("PRIMLJEN PONG OD:%s\n", msg.Posiljalac)
 		o.sluzba.PosaljiDrugojSluzbi2(msg.Posiljalac, &poruke.Poruka{Posiljalac: lok, Msg: &poruke.Poruka_Ping{Ping: &poruke.Ping{Id: "TEST_PING"}}})
+	case *poruke.Poruka_Fail:
+		fail := randomBool(0, 3)
+		if !fail {
+			o.cntFailure += 1
+			msg.CntFail += 1
+			fmt.Printf("NEUSPELA OBRADA, POKUSAJI %d, ", msg.GetCntFail())
+			fmt.Printf("BROJ NEUSPEHA AGENTA  %d : %d\n ", o.pid, o.cntFailure)
+			go o.sluzba.PosaljiPorukuRand(msg)
+		} else {
+			fmt.Printf("FAIL PORUKA USPESNO OBRADJENA, BROJ POKUSAJA : %d\n", msg.GetCntFail())
 
+		}
 	default:
 		fmt.Printf("Opertaivac sa id = %d ne prepoznaje tip poruke\n", o.pid)
 		fmt.Printf("NEPREPOZNATA PORUKA : %s\n", m)
 
 		fmt.Printf("TIP:%s\n", reflect.TypeOf(msg))
+		o.cntFailure += 1
 		//o.sluzba.PosaljiDrugojSluzbi("192.168.1.102:9091")
 	}
 
@@ -122,4 +140,9 @@ func (o *Operativac) isPenzionisan() bool {
 // https://www.golinuxcloud.com/check-if-golang-channel-buffer-is-full/
 func (o *Operativac) sanducePuno() bool {
 	return len(o.sanduce) == cap(o.sanduce)
+}
+
+func randomBool(min int, max int) bool {
+	randomNumber := rand.Intn(max - min)
+	return randomNumber == 1
 }

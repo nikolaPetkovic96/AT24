@@ -83,6 +83,10 @@ func (sl *Sluzba) PosaljiPoruku(id int, msg poruke.Poruka) {
 	}
 }
 func (sl *Sluzba) PosaljiPorukuRand(msg poruke.Poruka) bool {
+	if msg.CntFail >= 5 {
+		fmt.Printf("ODUSTAJANJE OD OBRADE %s, BROJ POKUSAJA %d\n", msg.GetMsg(), msg.GetCntFail())
+		return false
+	}
 	switch msg.Msg.(type) {
 	case *poruke.Poruka_Stop:
 		fmt.Printf("STIGLA NAREDBA ZA GASENJE SLUZBE !")
