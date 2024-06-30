@@ -35,6 +35,7 @@ message Poruka{
         Stop stop=5;
         Start start=6;
         Fail fail=7;
+        Help help=8;
     }
 }
 
@@ -45,4 +46,8 @@ message Start{
 }
 message Fail{
     bool fail=1;
+}
+
+message Help{
+    int32 id=1;
 }

@@ -35,7 +35,7 @@ func main() {
 	case "stop":
 		PosaljiDrugojSluzbi2(sluzba, &poruke.Poruka{Posiljalac: "STOP", CntFail: 0, Msg: &poruke.Poruka_Stop{Stop: &poruke.Stop{}}}, conn)
 	case "force_fail":
-		for i := 1; i <= 5; i++ {
+		for i := 1; i <= 30; i++ {
 			failure := randomBool()
 			PosaljiDrugojSluzbi2(sluzba, &poruke.Poruka{Posiljalac: "FAIL", CntFail: 0, Msg: &poruke.Poruka_Fail{Fail: &poruke.Fail{Fail: failure}}}, conn)
 		}

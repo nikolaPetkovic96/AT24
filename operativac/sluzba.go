@@ -173,3 +173,28 @@ func (sl *Sluzba) PingAll() {
 		sl.PosaljiDrugojSluzbi2(k, &poruke.Poruka{Posiljalac: lok, Msg: &poruke.Poruka_Ping{Ping: &poruke.Ping{Id: "TESTIRANJE"}}})
 	}
 }
+
+func (sl *Sluzba) RestartujeOp(i int) {
+	sl.mu.Lock()
+	o, exists := sl.operativci[i]
+	//o.obustavljen = true
+	if exists {
+		delete(sl.operativci, i)
+		fmt.Printf("Uspesno uklonjen NEISPRAVNI operativac sa id : %d\n", i)
+		novi := NoviOperativac(i, sl)
+		novi.cntReceive = o.cntReceive
+		//o.sanduce <- poruke.Poruka{Posiljalac: "KLONIRANJE", CntFail: 0, Msg: &poruke.Poruka_Fail{Fail: &poruke.Fail{Fail: true}}}
+		for {
+			if len(o.sanduce) < 1 {
+				break
+			}
+			msg := <-o.sanduce
+			novi.sanduce <- msg
+
+		}
+		sl.operativci[i] = novi
+		fmt.Printf("\nKLONIRAN operativac{id : %d, preuzeto Obrada: %d, prezetoPoruka : %d\n", i, novi.cntReceive, len(novi.sanduce))
+		sl.operativci[i].Start()
+	}
+	sl.mu.Unlock()
+}

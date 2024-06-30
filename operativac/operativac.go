@@ -69,7 +69,9 @@ func (o *Operativac) Receive(msg poruke.Poruka) {
 			msg.CntFail += 1
 			fmt.Printf("NEUSPELA OBRADA, POKUSAJI %d, ", msg.GetCntFail())
 			fmt.Printf("BROJ NEUSPEHA AGENTA  %d : %d\n ", o.pid, o.cntFailure)
+			o.ProveriSe()
 			go o.sluzba.PosaljiPorukuRand(msg)
+
 		} else {
 			fmt.Printf("FAIL PORUKA USPESNO OBRADJENA, BROJ POKUSAJA : %d\n", msg.GetCntFail())
 
@@ -145,4 +147,27 @@ func (o *Operativac) sanducePuno() bool {
 func randomBool(min int, max int) bool {
 	randomNumber := rand.Intn(max - min)
 	return randomNumber == 1
+}
+
+func (o *Operativac) ProveriSe() {
+	neuspesi := o.cntFailure
+	if neuspesi >= 5 {
+		go o.sluzba.RestartujeOp(o.pid)
+	}
+}
+
+func KopirajSe(op *Operativac) *Operativac {
+	close(op.sanduce)
+	kopy := &Operativac{
+		pid:         op.pid,
+		sanduce:     make(chan poruke.Poruka, 10),
+		obustava:    make(chan Message, 1),
+		sluzba:      op.sluzba,
+		obustavljen: false,
+		cntReceive:  op.cntReceive,
+		cntFailure:  0,
+	}
+	//defer close(op.sanduce)
+
+	return kopy
 }
