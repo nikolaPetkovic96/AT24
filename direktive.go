@@ -40,6 +40,14 @@ func main() {
 			PosaljiDrugojSluzbi2(sluzba, &poruke.Poruka{Posiljalac: "FAIL", CntFail: 0, Msg: &poruke.Poruka_Fail{Fail: &poruke.Fail{Fail: failure}}}, conn)
 		}
 
+	case "mini_novi":
+		for i := 1; i <= 30; i++ {
+			sendByte("novi", sluzba, conn)
+		}
+	case "mini_stop":
+		sendByte("stop", sluzba, conn)
+	case "mini_check":
+		sendByte("check", sluzba, conn)
 	default:
 		fmt.Println("Direktiva nije prepoznata!")
 
@@ -64,4 +72,15 @@ func PosaljiDrugojSluzbi2(adr string, p *poruke.Poruka, conn *net.UDPConn) {
 func randomBool() bool {
 	randomNumber := rand.Intn(2)
 	return randomNumber == 1
+}
+
+func sendByte(msg string, adr string, conn *net.UDPConn) {
+	marsh := []byte(msg)
+
+	addr, err := net.ResolveUDPAddr("udp", adr)
+	if err != nil {
+		fmt.Printf("NEISPRAVAN FORMAT ADRESE : %s \n", adr)
+		return
+	}
+	conn.WriteToUDP(marsh, addr)
 }

@@ -55,6 +55,8 @@ func main() {
 	sl1.DodajOperativca()
 	sl1.DodajOperativca()
 
+	miniSys := op.NoviSistem(conn)
+	miniSys.Start()
 	//sl1.PosaljiPoruku(id1, "Dobrodosao u sluzbu operativcu 0\n")
 	//sl1.PosaljiPoruku(id2, "Dobrodosao u sluzbu operativcu 1\n")
 	sl1.PingAll()
@@ -69,7 +71,8 @@ func main() {
 		var poruka poruke.Poruka
 		err = proto.Unmarshal(msg, &poruka)
 		if err != nil {
-			fmt.Println("Error unmarshaling protobuf:", err)
+			//fmt.Println("Error unmarshaling protobuf:", err)
+			miniSys.Receive(string(msg))
 			continue
 		}
 
@@ -82,4 +85,8 @@ func main() {
 		}
 	}
 	sl1.UgasiSluzbu(time.Now())
+}
+
+func NoviSistem(conn *net.UDPConn) {
+	panic("unimplemented")
 }
