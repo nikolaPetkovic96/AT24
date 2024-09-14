@@ -55,8 +55,8 @@ func main() {
 	sl1.DodajOperativca()
 	sl1.DodajOperativca()
 
-	miniSys := op.NoviSistem(conn)
-	miniSys.Start()
+	//miniSys := op.NoviSistem(conn)
+	//miniSys.Start()
 	//sl1.PosaljiPoruku(id1, "Dobrodosao u sluzbu operativcu 0\n")
 	//sl1.PosaljiPoruku(id2, "Dobrodosao u sluzbu operativcu 1\n")
 	sl1.PingAll()

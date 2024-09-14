@@ -31,13 +31,23 @@ func NovaSluzba(ime string, conn *net.UDPConn, poznate []string) *Sluzba {
 		}
 		pSluzbe[s] = addr
 	}
-	fmt.Printf("UKUPNO POZNATIH SLUZBI : %d\n", len(pSluzbe))
+	//fmt.Printf("UKUPNO POZNATIH SLUZBI : %d\n", len(pSluzbe))
 	return &Sluzba{
 		naziv:         ime,
 		operativci:    make(map[int]*Operativac),
 		naredniId:     0,
 		conn:          conn,
 		poznateSluzbe: pSluzbe,
+	}
+}
+func NovaSluzba2(ime string) *Sluzba {
+
+	return &Sluzba{
+		naziv:         ime,
+		operativci:    make(map[int]*Operativac),
+		naredniId:     0,
+		conn:          nil,
+		poznateSluzbe: nil,
 	}
 }
 
@@ -65,7 +75,7 @@ func (sl *Sluzba) DodajOperativca() int {
 	}
 }*/
 
-func (sl *Sluzba) PosaljiPoruku(id int, msg poruke.Poruka) {
+func (sl *Sluzba) PosaljiPoruku(id int, msg interface{}) {
 	t := time.Now()
 	sl.mu.Lock()
 	op, exists := sl.operativci[id]

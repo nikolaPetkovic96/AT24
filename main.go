@@ -6,11 +6,13 @@ import (
 	"time"
 )
 
+type OP1 struct{}
+
 func main() {
 	start := time.Now()
 	fmt.Println("Hello world !")
 
-	sl1 := op.NovaSluzba("domacaSluzba")
+	sl1 := op.NovaSluzba2("domacaSluzba")
 
 	id1 := sl1.DodajOperativca()
 	id2 := sl1.DodajOperativca()
@@ -19,10 +21,11 @@ func main() {
 	sl1.PosaljiPoruku(id2, 2)
 
 	sl1.ObustaviSluzbu(start)
+	time.Sleep(15 * 1000)
 	duration := time.Since(start)
 	fmt.Println("DUZINA IZVRSAVANJA : ", duration)
 	fmt.Println("\nSada su svi operativci zavrsili sve obaveze\n")
 
-	sl1.UgasiSluzbu(start)
+	//sl1.UgasiSluzbu(start)
 
 }
