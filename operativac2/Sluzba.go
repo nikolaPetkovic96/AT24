@@ -24,7 +24,7 @@ func NovaSluzba(conn *net.UDPConn) *Sluzba {
 	}
 }
 
-func (sl *Sluzba) Spawn(props *Props, id string) {
+func (sl *Sluzba) Spawn(props *Props, id string) *Operativac {
 	sl.mu.Lock()
 	_, exProps := sl.kinds[props.naziv]
 	if !exProps {
@@ -50,9 +50,11 @@ func (sl *Sluzba) Spawn(props *Props, id string) {
 		sl.mu.Unlock()
 		//go sl.AktivirajOperativca(op)
 		op.Start()
+		return op
 	} else {
 		sl.mu.Unlock()
 		fmt.Println("Posotji operativac sa zadatim id")
+		return nil
 	}
 }
 
@@ -82,6 +84,10 @@ func (sl *Sluzba) Stop(id string) {
 	sl.mu.Lock()
 	op, exists := sl.operativci[id]
 	sl.mu.Unlock()
+	//if exists {
+	//	fmt.Printf("exists, %s\n", id)
+	//}
+
 	if exists && !op.obustavljen {
 		//fmt.Printf("Stop signal : %s\n", id)
 		fmt.Printf(" Poslata poruka za gasenje, %s\n", op.info.id)
