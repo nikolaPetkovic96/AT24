@@ -124,7 +124,7 @@ func (sl *Sluzba) UgasiSluzbu() {
 	fmt.Printf("Sluzba je uspesno UGASENA\n")
 }
 
-func (sl *Sluzba) dodajPoznateSluzbu(poznate []string) {
+func (sl *Sluzba) DodajPoznateSluzbu(poznate []string) {
 	for _, s := range poznate {
 		addr, err := net.ResolveUDPAddr("udp", s)
 		if err != nil {

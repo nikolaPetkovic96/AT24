@@ -32,6 +32,7 @@ type ChildActor struct {
 // Receive implements operativac2.Actor.
 func (c *ChildActor) Receive(envelope op.Envelope) {
 	fmt.Printf("child primio poruku pod brojem: %d", c.brojac)
+	c.brojac++
 }
 
 func (w *WorkerActor) Receive(envelope op.Envelope) {
@@ -49,6 +50,8 @@ func (w *WorkerActor) Receive(envelope op.Envelope) {
 
 			msg.op.SpawnChild(chProps, strconv.Itoa(i))
 		}
+		time.Sleep(1 * time.Second)
+		msg.op.SendToChildren(struct{}{})
 	default:
 		fmt.Printf("WorkerActor received unknown message. BROJAC: %d\n", w.brojac)
 	}

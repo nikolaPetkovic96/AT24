@@ -104,7 +104,7 @@ func (o *Operativac) Start() {
 	}()
 }
 
-func (o *Operativac) SpawnChild(props *Props, id string) {
+func (o *Operativac) SpawnChild(props *Props, id string) string {
 	o.sluzba.mu.Lock()
 	_, exProps := o.sluzba.kinds[props.naziv]
 	if !exProps {
@@ -132,9 +132,11 @@ func (o *Operativac) SpawnChild(props *Props, id string) {
 
 		//go sl.AktivirajOperativca(op)
 		op.Start()
+		return op.info.id
 	} else {
 		o.sluzba.mu.Unlock()
 		fmt.Println("Posotji operativac sa zadatim id")
+		return ""
 	}
 }
 
@@ -162,4 +164,15 @@ func (o *Operativac) oslobodi() {
 		o.sluzba.mu.Unlock()
 		o.sluzba.wg.Done()
 	}
+}
+
+func (o *Operativac) SendToChildren(msg Message) bool {
+	//env := &Envelope{senderId: o.info.id, Message: msg, receiverId: ""}
+	o.mu.Lock()
+	for _, childId := range o.info.children {
+		//env.receiverId = childId
+		o.sluzba.Send(childId, Envelope{senderId: o.info.id, Message: msg, receiverId: childId})
+	}
+	o.mu.Unlock()
+	return true
 }
