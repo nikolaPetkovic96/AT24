@@ -8,19 +8,19 @@ import (
 type Message interface{} //omogucava da bilo sta bude konkretna poruka
 type Envelope struct {   //omotac oko poruke sa dodatnim informacijama
 	Message    `json:"message"`
-	senderId   string `json:"senderid"`
-	receiverId string `json:"receiverid"`
-	cntFail    int    `json:"cntfail"`
-	senderIp   string `json:senderip`
+	SenderId   string `json:"senderId"`
+	ReceiverId string `json:"receiverId"`
+	CntFail    int    `json:"cntFail"`
+	SenderIp   string `json:"senderIp"`
 }
 
 func NewEnvelope(msg interface{}, senderId string, receiverId string, ip string) *Envelope {
 	return &Envelope{
 		Message:    msg,
-		senderId:   senderId,
-		receiverId: receiverId,
-		cntFail:    0,
-		senderIp:   ip,
+		SenderId:   senderId,
+		ReceiverId: receiverId,
+		CntFail:    0,
+		SenderIp:   ip,
 	}
 }
 
@@ -173,7 +173,7 @@ func (o *Operativac) SendToChildren(msg Message) bool {
 	o.mu.Lock()
 	for _, childId := range o.info.children {
 		//env.receiverId = childId
-		o.sluzba.Send(childId, Envelope{senderId: o.info.id, Message: msg, receiverId: childId})
+		o.sluzba.Send(childId, Envelope{SenderId: o.info.id, Message: msg, ReceiverId: childId})
 	}
 	o.mu.Unlock()
 	return true

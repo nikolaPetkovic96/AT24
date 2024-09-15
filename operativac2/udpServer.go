@@ -62,7 +62,7 @@ func (u *udpServer) Pokreni() {
 			//greska pri prijemu, obracdjeno u deserijalizuj metodi
 		} else {
 			fmt.Printf("Received message from %s: %s\n", clientAddr, msg)
-			u.sluzba.Send(env.receiverId, env)
+			u.sluzba.Send(env.ReceiverId, env)
 		}
 		if !u.nastavi {
 			break
@@ -79,13 +79,14 @@ func (u *udpServer) SendRemote(env Envelope, adr *net.UDPAddr) {
 }
 
 func Serijalizuj(env Envelope) []byte {
-	serializedDate, err := json.Marshal(env)
+	fmt.Printf("PRE SERIJALIZACIJE : %s, %s, %s, %s, %d\n", env.Message, env.SenderIp, env.SenderId, env.ReceiverId, env.CntFail)
+	serializedData, err := json.Marshal(env)
 	if err != nil {
 		fmt.Printf("Greska pri serijalizaciji !\n")
 		return nil
 	}
-	fmt.Println("Serijalizovani obj: ", string(serializedDate))
-	return serializedDate
+	fmt.Println("Serijalizovani obj: ", string(serializedData))
+	return serializedData
 }
 
 func Deserijalizuj(serializedDate []byte) (Envelope, error) {
