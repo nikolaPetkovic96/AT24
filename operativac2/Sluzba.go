@@ -40,7 +40,7 @@ func (sl *Sluzba) Spawn(props *Props, id string) *Operativac {
 			mailbox:     make(chan Envelope, props.mailboxSize),
 			actor:       actor,
 			stopSignal:  make(chan struct{}),
-			sluzba:      sl,
+			Sluzba:      sl,
 			parent:      nil,
 			obustavljen: false,
 			penzionisan: false,
@@ -134,6 +134,20 @@ func (sl *Sluzba) DodajPoznateSluzbu(poznate []string) {
 		fmt.Printf("Dodavanje adrese :%s\n", s)
 		sl.PoznateSluzbe[s] = addr
 	}
+}
+
+func (sl *Sluzba) DodajSluzbu(poznate string) {
+
+	addr, err := net.ResolveUDPAddr("udp", poznate)
+	if err != nil {
+		fmt.Printf("NEISPRAVAN FORMAT ADRESE : %s \n", poznate)
+		return
+	}
+	fmt.Printf("Dodavanje adrese :%s\n", poznate)
+	sl.mu.Lock()
+	sl.PoznateSluzbe[poznate] = addr
+	sl.mu.Unlock()
+
 }
 
 func (sl *Sluzba) PosaljiDrugojSluzbi(adr string, env Envelope) {

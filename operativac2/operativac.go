@@ -26,7 +26,12 @@ func NewEnvelope(msg interface{}, senderId string, receiverId string, ip string)
 
 type Actor interface {
 	//Receive(msg interface{})
-	Receive(envelope Envelope)
+	//Receive(envelope Envelope)
+	Receive(ctx Context)
+}
+type Context struct {
+	Env Envelope
+	Pok *Operativac
 }
 type Info struct {
 	nazivSluzbe string
@@ -42,7 +47,7 @@ type Operativac struct {
 	mailbox     chan Envelope
 	actor       Actor
 	stopSignal  chan struct{}
-	sluzba      *Sluzba
+	Sluzba      *Sluzba
 	parent      *Operativac
 	obustavljen bool
 	penzionisan bool
@@ -58,7 +63,7 @@ func (o *Operativac) Start() {
 		o.parent.mu.Unlock()
 		o.parent.wg.Add(1)
 	} else {
-		o.sluzba.wg.Add(1)
+		o.Sluzba.wg.Add(1)
 	}
 
 	go func() {
@@ -72,7 +77,7 @@ func (o *Operativac) Start() {
 				for _, s1 := range o.info.children {
 					fmt.Printf("Zaustavi child : %s\n", s1)
 					go func() {
-						o.sluzba.Stop(s1)
+						o.Sluzba.Stop(s1)
 					}()
 				}
 				o.mu.Unlock()
@@ -87,9 +92,10 @@ func (o *Operativac) Start() {
 
 			case dopis := <-o.mailbox:
 
-				//fmt.Println("Operativac " + o.info.id + " primio poruku")
+				fmt.Println("Operativac " + o.info.id + " primio poruku")
 
-				o.actor.Receive(dopis)
+				//o.actor.Receive(dopis)
+				o.actor.Receive(Context{Env: dopis, Pok: o})
 			case <-o.stopSignal:
 				//time.Sleep(1 * time.Second)
 				if !o.obustavljen {
@@ -107,36 +113,36 @@ func (o *Operativac) Start() {
 }
 
 func (o *Operativac) SpawnChild(props *Props, id string) string {
-	o.sluzba.mu.Lock()
-	_, exProps := o.sluzba.Kinds[props.naziv]
+	o.Sluzba.mu.Lock()
+	_, exProps := o.Sluzba.Kinds[props.naziv]
 	if !exProps {
-		o.sluzba.Kinds[props.naziv] = props
+		o.Sluzba.Kinds[props.naziv] = props
 	}
-	o.sluzba.mu.Unlock()
-	o.sluzba.mu.Lock()
+	o.Sluzba.mu.Unlock()
+	o.Sluzba.mu.Lock()
 	//defer sl.mu.Unlock()
-	_, exists := o.sluzba.Operativci[id]
+	_, exists := o.Sluzba.Operativci[id]
 	if !exists {
 		actor := props.actorFunc()
 		op := &Operativac{
 			mailbox:     make(chan Envelope, props.mailboxSize),
 			actor:       actor,
 			stopSignal:  make(chan struct{}),
-			sluzba:      o.sluzba,
+			Sluzba:      o.Sluzba,
 			parent:      o,
 			obustavljen: false,
 			penzionisan: false,
 			info:        Info{nazivSluzbe: o.info.nazivSluzbe, id: o.info.id + "_" + id, cntFail: 0, kind: props.naziv, parent: o.info.id},
 		}
-		o.sluzba.Operativci[op.info.id] = op
-		o.sluzba.mu.Unlock()
+		o.Sluzba.Operativci[op.info.id] = op
+		o.Sluzba.mu.Unlock()
 		fmt.Printf("SPAWN child :  %s\n", op.info.id)
 
 		//go sl.AktivirajOperativca(op)
 		op.Start()
 		return op.info.id
 	} else {
-		o.sluzba.mu.Unlock()
+		o.Sluzba.mu.Unlock()
 		fmt.Println("Posotji operativac sa zadatim id")
 		return ""
 	}
@@ -161,10 +167,11 @@ func (o *Operativac) oslobodi() {
 		o.parent.mu.Unlock()
 		o.parent.wg.Done()
 	} else {
-		o.sluzba.mu.Lock()
-		delete(o.sluzba.Operativci, o.info.id)
-		o.sluzba.mu.Unlock()
-		o.sluzba.wg.Done()
+		o.Sluzba.mu.Lock()
+		delete(o.Sluzba.Operativci, o.info.id)
+		//o.sluzba.Operativci[o.info.id] = nil
+		o.Sluzba.mu.Unlock()
+		o.Sluzba.wg.Done()
 	}
 }
 
@@ -173,8 +180,12 @@ func (o *Operativac) SendToChildren(msg Message) bool {
 	o.mu.Lock()
 	for _, childId := range o.info.children {
 		//env.receiverId = childId
-		o.sluzba.Send(childId, Envelope{SenderId: o.info.id, Message: msg, ReceiverId: childId})
+		o.Sluzba.Send(childId, Envelope{SenderId: o.info.id, Message: msg, ReceiverId: childId})
 	}
 	o.mu.Unlock()
 	return true
+}
+
+func (o *Operativac) GetId() string {
+	return o.info.id
 }

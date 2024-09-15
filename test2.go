@@ -3,57 +3,22 @@ package main
 import (
 	op "at24/operativac2"
 	"fmt"
-	"strconv"
 	"time"
 )
 
-type PrinterActor struct{}
+type PrinterActor struct {
+}
 
-func (p *PrinterActor) Receive(envelope op.Envelope) {
-	switch msg := envelope.Message.(type) {
+func (p *PrinterActor) Receive(ctx op.Context) {
+	switch msg := ctx.Env.Message.(type) {
+
 	case string:
 		fmt.Println("PrinterActor received:", msg)
+		time.Sleep(1 * time.Second)
+		ctx.Pok.Sluzba.Conn.SendRemote(op.Envelope{Message: "Zahveljujem na pozdravu!", SenderId: ctx.Pok.GetId(), SenderIp: ctx.Pok.Sluzba.Conn.Address.String(), ReceiverId: ctx.Env.SenderId},
+			ctx.Pok.Sluzba.PoznateSluzbe[ctx.Env.SenderIp])
 	default:
 		fmt.Println("PrinterActor received unknown message")
-	}
-}
-
-type CreateChildren struct {
-	brojDece int
-	op       *op.Operativac
-}
-type WorkerActor struct {
-	brojac int
-}
-type ChildActor struct {
-	brojac int
-}
-
-// Receive implements operativac2.Actor.
-func (c *ChildActor) Receive(envelope op.Envelope) {
-	fmt.Printf("child primio poruku pod brojem: %d", c.brojac)
-	c.brojac++
-}
-
-func (w *WorkerActor) Receive(envelope op.Envelope) {
-	w.brojac++
-	switch msg := envelope.Message.(type) {
-	case string:
-		fmt.Println("WorkerActor processed:", msg+"!")
-	case *CreateChildren:
-		fmt.Printf("Kreiranje dece")
-		chProps := op.NewProps("work", func() op.Actor {
-			return &ChildActor{brojac: 5}
-		})
-
-		for i := 0; i < msg.brojDece; i++ {
-
-			msg.op.SpawnChild(chProps, strconv.Itoa(i))
-		}
-		time.Sleep(1 * time.Second)
-		msg.op.SendToChildren(struct{}{})
-	default:
-		fmt.Printf("WorkerActor received unknown message. BROJAC: %d\n", w.brojac)
 	}
 }
 
@@ -61,24 +26,18 @@ func main() {
 	printerProps := op.NewProps("print", func() op.Actor {
 		return &PrinterActor{}
 	})
-	workerProps := op.NewProps("work", func() op.Actor {
-		return &WorkerActor{brojac: 0}
-	})
 
 	sl := op.NovaSluzba()
 	sl.Spawn(printerProps, "p")
-	sl.Spawn(workerProps, "w")
 
 	sl.Send("p", *op.NewEnvelope("HELLO P", "unknown", "p", ""))
-	sl.Send("w", *op.NewEnvelope("HELLO W", "unknown", "W", ""))
-
+	//sl.Send("p", *op.NewEnvelope(p, "root", "p", sl.Conn.Address.String()))
 	server := op.NoviServer("9090", sl)
 	sl.Conn = server
 	go server.Pokreni()
 
 	sl2 := op.NovaSluzba()
 	sl2.Spawn(printerProps, "p2")
-	//w2 := sl2.Spawn(workerProps, "w2")
 
 	server2 := op.NoviServer("9091", sl2)
 	sl2.Conn = server2

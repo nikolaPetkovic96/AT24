@@ -62,6 +62,7 @@ func (u *udpServer) Pokreni() {
 			//greska pri prijemu, obracdjeno u deserijalizuj metodi
 		} else {
 			fmt.Printf("Received message from %s: %s\n", clientAddr, msg)
+			u.sluzba.DodajSluzbu(env.SenderIp)
 			u.sluzba.Send(env.ReceiverId, env)
 		}
 		if !u.nastavi {
