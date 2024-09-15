@@ -7,33 +7,33 @@ import (
 )
 
 type Sluzba struct {
-	operativci    map[string]*Operativac
-	kinds         map[string]*Props
+	Operativci    map[string]*Operativac
+	Kinds         map[string]*Props
 	mu            sync.Mutex
 	wg            sync.WaitGroup
-	conn          *net.UDPConn
-	poznateSluzbe map[string]*net.UDPAddr
+	Conn          *udpServer
+	PoznateSluzbe map[string]*net.UDPAddr
 }
 
-func NovaSluzba(conn *net.UDPConn) *Sluzba {
+func NovaSluzba() *Sluzba {
 	return &Sluzba{
-		operativci:    make(map[string]*Operativac),
-		poznateSluzbe: make(map[string]*net.UDPAddr),
-		conn:          conn,
-		kinds:         make(map[string]*Props),
+		Operativci:    make(map[string]*Operativac),
+		PoznateSluzbe: make(map[string]*net.UDPAddr),
+		Conn:          nil,
+		Kinds:         make(map[string]*Props),
 	}
 }
 
 func (sl *Sluzba) Spawn(props *Props, id string) *Operativac {
 	sl.mu.Lock()
-	_, exProps := sl.kinds[props.naziv]
+	_, exProps := sl.Kinds[props.naziv]
 	if !exProps {
-		sl.kinds[props.naziv] = props
+		sl.Kinds[props.naziv] = props
 	}
 	sl.mu.Unlock()
 	sl.mu.Lock()
 	//defer sl.mu.Unlock()
-	_, exists := sl.operativci[id]
+	_, exists := sl.Operativci[id]
 	if !exists {
 		actor := props.actorFunc()
 		op := &Operativac{
@@ -46,7 +46,7 @@ func (sl *Sluzba) Spawn(props *Props, id string) *Operativac {
 			penzionisan: false,
 			info:        Info{nazivSluzbe: "", id: id, cntFail: 0, kind: props.naziv, parent: ""},
 		}
-		sl.operativci[id] = op
+		sl.Operativci[id] = op
 		sl.mu.Unlock()
 		//go sl.AktivirajOperativca(op)
 		op.Start()
@@ -71,7 +71,7 @@ func (sl *Sluzba) Spawn(props *Props, id string) *Operativac {
 
 func (sl *Sluzba) Send(id string, msg Envelope) {
 	sl.mu.Lock()
-	op, exists := sl.operativci[id]
+	op, exists := sl.Operativci[id]
 	sl.mu.Unlock()
 	if exists { //TODO razradi ako je puno sanduce
 		op.mailbox <- msg
@@ -82,7 +82,7 @@ func (sl *Sluzba) Send(id string, msg Envelope) {
 
 func (sl *Sluzba) Stop(id string) {
 	sl.mu.Lock()
-	op, exists := sl.operativci[id]
+	op, exists := sl.Operativci[id]
 	sl.mu.Unlock()
 	//if exists {
 	//	fmt.Printf("exists, %s\n", id)
@@ -98,10 +98,10 @@ func (sl *Sluzba) Stop(id string) {
 
 func (sl *Sluzba) Remove(id string) {
 	sl.mu.Lock()
-	op, exists := sl.operativci[id]
+	op, exists := sl.Operativci[id]
 
 	if exists && op.penzionisan {
-		delete(sl.operativci, id)
+		delete(sl.Operativci, id)
 	}
 	sl.mu.Unlock()
 	//sl.wg.Done()
@@ -109,7 +109,7 @@ func (sl *Sluzba) Remove(id string) {
 
 func (sl *Sluzba) UgasiSluzbu() {
 	sl.mu.Lock()
-	for _, op := range sl.operativci {
+	for _, op := range sl.Operativci {
 		//sl.wg.Add(1)
 		if op.info.parent == "" {
 			go func() {
@@ -131,10 +131,11 @@ func (sl *Sluzba) DodajPoznateSluzbu(poznate []string) {
 			fmt.Printf("NEISPRAVAN FORMAT ADRESE : %s \n", s)
 			continue
 		}
-		sl.poznateSluzbe[s] = addr
+		fmt.Printf("Dodavanje adrese :%s\n", s)
+		sl.PoznateSluzbe[s] = addr
 	}
 }
 
-func (sl *Sluzba) PosaljiDrugojSluzbi(adr string, s string) {
-	sl.conn.WriteToUDP([]byte(s), sl.poznateSluzbe[adr])
+func (sl *Sluzba) PosaljiDrugojSluzbi(adr string, env Envelope) {
+	sl.Conn.SendRemote(env, sl.PoznateSluzbe[adr])
 }

@@ -1,15 +1,17 @@
 package operativac2
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
 )
 
 type udpServer struct {
-	address *net.UDPAddr
+	Address *net.UDPAddr
 	sluzba  *Sluzba
 	nastavi bool
+	conn    *net.UDPConn
 }
 
 func NoviServer(port string, s *Sluzba) *udpServer {
@@ -29,20 +31,22 @@ func NoviServer(port string, s *Sluzba) *udpServer {
 		return nil
 	}
 	return &udpServer{
-		address: udpAddr,
+		Address: udpAddr,
 		sluzba:  s,
 		nastavi: true,
 	}
 }
-func (u *udpServer) Pokreni(port string) {
+func (u *udpServer) Pokreni() {
 
 	// Create UDP listener
-	conn, err := net.ListenUDP("udp", u.address)
+	conn, err := net.ListenUDP("udp", u.Address)
 	if err != nil {
 		fmt.Printf("Error listening: %v\n", err)
 		return
 	}
-	fmt.Println("Adresa udp servera : ", u.address)
+	fmt.Println("Adresa udp servera : ", u.Address)
+	u.conn = conn
+	//u.sluzba.conn = conn
 	defer conn.Close()
 
 	for {
@@ -53,8 +57,13 @@ func (u *udpServer) Pokreni(port string) {
 			continue
 		}
 		msg := buffer[:n]
-
-		fmt.Printf("Received message from %s: %s\n", clientAddr, msg)
+		env, err := Deserijalizuj(msg)
+		if err != nil {
+			//greska pri prijemu, obracdjeno u deserijalizuj metodi
+		} else {
+			fmt.Printf("Received message from %s: %s\n", clientAddr, msg)
+			u.sluzba.Send(env.receiverId, env)
+		}
 		if !u.nastavi {
 			break
 		} else {
@@ -64,3 +73,31 @@ func (u *udpServer) Pokreni(port string) {
 }
 
 func (u *udpServer) Zaustavi() { u.nastavi = false }
+
+func (u *udpServer) SendRemote(env Envelope, adr *net.UDPAddr) {
+	u.conn.WriteToUDP(Serijalizuj(env), adr)
+}
+
+func Serijalizuj(env Envelope) []byte {
+	serializedDate, err := json.Marshal(env)
+	if err != nil {
+		fmt.Printf("Greska pri serijalizaciji !\n")
+		return nil
+	}
+	fmt.Println("Serijalizovani obj: ", string(serializedDate))
+	return serializedDate
+}
+
+func Deserijalizuj(serializedDate []byte) (Envelope, error) {
+	var env Envelope
+	err := json.Unmarshal(serializedDate, &env)
+	if err != nil {
+		fmt.Printf("Greska pri serijalizaciji! ")
+	} else {
+		if v, ok := env.Message.(interface{}); ok {
+			fmt.Println("Primljena Poruka:", v)
+
+		}
+	}
+	return env, err
+}

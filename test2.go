@@ -67,18 +67,39 @@ func main() {
 
 	sl := op.NovaSluzba()
 	sl.Spawn(printerProps, "p")
-	w := sl.Spawn(workerProps, "w")
+	sl.Spawn(workerProps, "w")
 
 	sl.Send("p", *op.NewEnvelope("HELLO P", "unknown", "p", ""))
 	sl.Send("w", *op.NewEnvelope("HELLO W", "unknown", "W", ""))
 
-	sl.Stop("p")
+	server := op.NoviServer("9090", sl)
+	sl.Conn = server
+	go server.Pokreni()
 
-	sl.Send("p", *op.NewEnvelope("35", "unknown", "p", ""))
-	sl.Send("w", *op.NewEnvelope(23, "unknown", "2", ""))
+	sl2 := op.NovaSluzba()
+	sl2.Spawn(printerProps, "p2")
+	//w2 := sl2.Spawn(workerProps, "w2")
 
-	sl.Send("w", *op.NewEnvelope(&CreateChildren{brojDece: 5, op: w}, "unknown", "p", ""))
-	time.Sleep(1 * time.Second)
+	server2 := op.NoviServer("9091", sl2)
+	sl2.Conn = server2
+	go server2.Pokreni()
+	var addr1 []string
+	addr1 = append(addr1, server.Address.String())
+	sl2.DodajPoznateSluzbu(addr1)
+	time.Sleep(2 * time.Second)
+
+	sl2.PosaljiDrugojSluzbi(server.Address.String(),
+		*op.NewEnvelope("pozdrav sa server2 !", "p2", "p", server2.Address.String()),
+	)
+	time.Sleep(2 * time.Second)
+
+	//sl.Stop("p")
+
+	//sl.Send("p", *op.NewEnvelope("35", "unknown", "p"))
+	//sl.Send("w", *op.NewEnvelope(23, "unknown", "2"))
+
+	//sl.Send("w", *op.NewEnvelope(&CreateChildren{brojDece: 5, op: w}, "unknown", "p"))
+	//time.Sleep(1 * time.Second)
 
 	sl.UgasiSluzbu()
 	time.Sleep(1 * time.Second)

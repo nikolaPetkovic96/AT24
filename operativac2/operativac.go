@@ -7,18 +7,20 @@ import (
 
 type Message interface{} //omogucava da bilo sta bude konkretna poruka
 type Envelope struct {   //omotac oko poruke sa dodatnim informacijama
-	Message
-	senderId   string
-	receiverId string
-	cntFail    int
+	Message    `json:"message"`
+	senderId   string `json:"senderid"`
+	receiverId string `json:"receiverid"`
+	cntFail    int    `json:"cntfail"`
+	senderIp   string `json:senderip`
 }
 
-func NewEnvelope(msg interface{}, senderId string, receiverId string) *Envelope {
+func NewEnvelope(msg interface{}, senderId string, receiverId string, ip string) *Envelope {
 	return &Envelope{
 		Message:    msg,
 		senderId:   senderId,
 		receiverId: receiverId,
 		cntFail:    0,
+		senderIp:   ip,
 	}
 }
 
@@ -106,14 +108,14 @@ func (o *Operativac) Start() {
 
 func (o *Operativac) SpawnChild(props *Props, id string) string {
 	o.sluzba.mu.Lock()
-	_, exProps := o.sluzba.kinds[props.naziv]
+	_, exProps := o.sluzba.Kinds[props.naziv]
 	if !exProps {
-		o.sluzba.kinds[props.naziv] = props
+		o.sluzba.Kinds[props.naziv] = props
 	}
 	o.sluzba.mu.Unlock()
 	o.sluzba.mu.Lock()
 	//defer sl.mu.Unlock()
-	_, exists := o.sluzba.operativci[id]
+	_, exists := o.sluzba.Operativci[id]
 	if !exists {
 		actor := props.actorFunc()
 		op := &Operativac{
@@ -126,7 +128,7 @@ func (o *Operativac) SpawnChild(props *Props, id string) string {
 			penzionisan: false,
 			info:        Info{nazivSluzbe: o.info.nazivSluzbe, id: o.info.id + "_" + id, cntFail: 0, kind: props.naziv, parent: o.info.id},
 		}
-		o.sluzba.operativci[op.info.id] = op
+		o.sluzba.Operativci[op.info.id] = op
 		o.sluzba.mu.Unlock()
 		fmt.Printf("SPAWN child :  %s\n", op.info.id)
 
@@ -160,7 +162,7 @@ func (o *Operativac) oslobodi() {
 		o.parent.wg.Done()
 	} else {
 		o.sluzba.mu.Lock()
-		delete(o.sluzba.operativci, o.info.id)
+		delete(o.sluzba.Operativci, o.info.id)
 		o.sluzba.mu.Unlock()
 		o.sluzba.wg.Done()
 	}
